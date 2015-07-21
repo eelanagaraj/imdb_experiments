@@ -13,6 +13,7 @@ from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM, GRU
 
 '''
+    ~~~ MODIFIED FROM KERAS.IO IMDB EXAMPLE ~~~
     Train an LSTM on rating classification -- non-binary sentiment classification.
     Try to guess the numerical rating that corresponds with the text review.
 
