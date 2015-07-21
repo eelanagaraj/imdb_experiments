@@ -71,7 +71,7 @@ chopped_model.compile(loss='binary_crossentropy', optimizer='adam', class_mode="
 # pickle intermediate outputs, model weights
 train_activations = chopped_model.predict(X_train, batch_size=batch_size)
 test_activations = chopped_model.predict(X_test, batch_size=batch_size)
-outputs = dict(final=classes, acc=acc, weights=store_weights, y_train=y_train, y_test=y_test
+outputs = dict(final=classes, acc=acc, weights=store_weights, y_train=y_train, y_test=y_test,
     train_activations=train_activations, test_activations=test_activations) 
 
 pkl.dump(outputs, open('results/predicted_activations.pkl', 'wb'), 
