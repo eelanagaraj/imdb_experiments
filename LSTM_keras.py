@@ -26,9 +26,10 @@ max_features=20000
 maxlen = 100 # cut texts after this number of words (among top max_features most common words)
 batch_size = 16
 
+# had some luck with seed 111
 print("Loading data...")
-(X_train, y_train), (X_test, y_test), w = load_imdb_data('data_processing/processed_imdb.pkl', 
-    binary=True, max_features=max_features, maxlen=maxlen, seed=113)
+(X_train, y_train), (X_test, y_test), w = load_imdb_data(
+    binary=True, max_features=max_features, maxlen=maxlen, seed=37)
 
 print(len(X_train), 'train sequences')
 print(len(X_test), 'test sequences')

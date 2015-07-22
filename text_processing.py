@@ -21,6 +21,12 @@ from keras.datasets import imdb
 from bs4 import BeautifulSoup
 from nltk.corpus import stopwords 
 
+# define some global settings specific to imdb data set
+NTRAIN = 25000
+NTEST = 25000
+M_LEN = 100
+M_FEAT = 20000
+
 
 """ take in a string, returns a string without stop words, html markup, etc"""
 def clean_review (raw_text) :
@@ -72,44 +78,31 @@ def vector_to_word (sequence_matrix, word_dict) :
 	return wlists
 
 
-""" Function to convert raw data in text files into sequences and to return a corresponding
-	list of labels (binary or categorical depending on setting). Seed value allows
-	for reproduceable data shuffling. """
-def text_preprocess (path_train_pos, path_train_neg, path_test_pos, path_test_neg, num_train_files,
-	num_test_files, max_features, maxlen, binary=True, seed=113) :
+""" Function to convert raw data in text files into sequences and to return a 
+    corresponding list of labels (binary or categorical depending on setting). """
+def text_preprocess (path_train_pos, path_train_neg, path_test_pos, path_test_neg, 
+	num_train, num_test, max_features, maxlen, binary=True) :
 	# process training data
-	pos_train, ptrain_labels = process_text_files(path_train_pos, num_train_files/2)
-	negs_train, ntrain_labels = process_text_files(path_train_neg, num_train_files/2)
+	pos_train, ptrain_labels = process_text_files(path_train_pos, num_train/2)
+	negs_train, ntrain_labels = process_text_files(path_train_neg, num_train/2)
 	train_text = pos_train + negs_train
 
 	# process test data
-	pos_test, ptest_labels = process_text_files(path_test_pos, num_test_files/2)
-	negs_test, ntest_labels = process_text_files(path_test_neg, num_test_files/2)
+	pos_test, ptest_labels = process_text_files(path_test_pos, num_test/2)
+	negs_test, ntest_labels = process_text_files(path_test_neg, num_test/2)
 	test_text = pos_test + negs_test
 
 	# process labels as either numerical categories or binary positive/negative
 	if binary :
-		y_train = [0]*num_train_files
-		y_test = [0]*num_test_files
-		for i in xrange(num_train_files/2) :
+		y_train = [0]*num_train
+		y_test = [0]*num_test
+		for i in xrange(num_train/2) :
 				y_train[i] = 1
-		for i in xrange(num_test_files/2) :
+		for i in xrange(num_test/2) :
 				y_test[i] = 1
 	else :
 		y_train = ptrain_labels + ntrain_labels
 		y_test = ptest_labels + ntest_labels
-
-	# shuffle training data with reproducable seed, should still keep pairings intact!
-	random.seed(seed)
-	random.shuffle(train_text)
-	random.seed(seed)
-	random.shuffle(y_train)
-
-	#shuffle test data
-	random.seed(seed)
-	random.shuffle(test_text)
-	random.seed(seed)
-	random.shuffle(y_test)
 
 	# fit dictionary on all data
 	tokenizer = text.Tokenizer(nb_words=max_features, lower=True, split=" ")
@@ -126,35 +119,41 @@ def text_preprocess (path_train_pos, path_train_neg, path_test_pos, path_test_ne
 
 
 """ Simple wrapper function: Opens processed files or processes raw data if
-	necessary for binary or categorical use. Return format:
+	necessary for binary or categorical use. Seed value allows for reproducibly
+	random shuffling of the data set.	Return format:
 		(X_train,y_train),(X_test,y_test),w 		"""
-def load_imdb_data (fname, binary, num_train_files=25000, num_test_files=25000, 
-	max_features=20000, maxlen=100, seed=113) :
-	desired_stats = dict(binary=binary, seed=seed, num_train_files=num_train_files, 
-			num_test_files=num_test_files, max_features=max_features, maxlen=maxlen)
-	# simply open and load data if it has already been processed
-	if (os.path.isfile(fname)) :
-		data = pkl.load(open(fname, 'rb'))
-		# make sure data that is loaded is of proper format (regarding features)
-		loaded_stats = data['stats']
-		if (desired_stats == loaded_stats) :
-			X_train = data['X_train']
-			y_train = data['y_train']
-			X_test = data['X_test']
-			y_test = data['y_test']
-			w = data['w']
-			return (X_train, y_train), (X_test, y_test), w
-	
-	# data is not of desired feature format or raw data has not been processed
-	(X_train, y_train), (X_test, y_test), w = text_preprocess(
-			path_train_pos='aclImdb/train/pos', path_train_neg='aclImdb/train/neg', 
-			path_test_pos='aclImdb/test/pos', path_test_neg='aclImdb/test/neg',
-			num_train_files=num_train_files, num_test_files=num_test_files, 
-			max_features=max_features, maxlen=maxlen, binary=binary, seed=seed)
-	imdb_data = dict(X_train= X_train, y_train=y_train, 
-		X_test=X_test, y_test=y_test, w=w, stats=desired_stats)
-	pkl.dump(imdb_data, open(fname, 'wb'), protocol=pkl.HIGHEST_PROTOCOL)
+def load_imdb_data (binary, num_train=NTRAIN, num_test=NTEST, 
+	max_features=M_FEAT, maxlen=M_LEN, seed=113) :
+	# if num_files, max_features, maxlen are defaults, use standard file and shuffle
+	if (num_train == NTRAIN and num_test == NTEST and 
+		max_features == M_FEAT and maxlen == M_LEN) :
+		if binary :
+			unshuffled_data = pkl.load(open('data_processing/processed_imdb.pkl', 'rb'))
+		else :
+			unshuffled_data = pkl.load(open('data_processing/processed_imdb_cats.pkl', 'rb'))
+		X_train = unshuffled_data['X_train']
+		y_train = unshuffled_data['y_train']
+		X_test = unshuffled_data['X_test']
+		y_test = unshuffled_data['y_test']
+		w = unshuffled_data['w']
+	else :
+	# re-process for different features
+		(X_train, y_train), (X_test, y_test), w = text_preprocess(
+			path_train_pos='data_processing/aclImdb/train/pos', 
+			path_train_neg='data_processing/aclImdb/train/neg', 
+			path_test_pos='data_processing/aclImdb/test/pos',
+			path_test_neg='data_processing/aclImdb/test/neg',
+			num_train=num_train, num_test=num_test, 
+			max_features=max_features, maxlen=maxlen, binary=binary)
+	# shuffle data in place with provided seed
+	np.random.seed(seed)
+	np.random.shuffle(X_train)
+	np.random.seed(seed)
+	np.random.shuffle(y_train)
+	np.random.seed(seed)
+	np.random.shuffle(X_test)
+	np.random.seed(seed)
+	np.random.shuffle(y_test)
+
 	return (X_train, y_train), (X_test, y_test), w
-
-
-
+	

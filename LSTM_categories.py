@@ -30,7 +30,7 @@ maxlen = 100 # cut texts after this number of words (among top max_features most
 batch_size = 16
 
 print("Loading data...")
-(X_train, y_train), (X_test, y_test), w = load_imdb_data('data_processing/processed_imdb_cats.pkl', 
+(X_train, y_train), (X_test, y_test), w = load_imdb_data(
     binary=False, seed=113, maxlen=maxlen, max_features=max_features)
 
 # for categories, convert label lists to binary arrays
